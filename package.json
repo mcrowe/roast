@@ -1,0 +1,19 @@
+{
+  "name": "babel-plugin-react-cl",
+  "description": "Babel plugin which gives you a shorthand for defining classNames in JSX",
+  "version": "0.0.1",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "babel-core": "^6.0.15",
+    "babel-preset-react": "^6.0.15",
+    "mocha": "^2.3.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/insin/babel-plugin-react-html-attrs.git"
+  }
+}

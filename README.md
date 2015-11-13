@@ -7,7 +7,6 @@ Add classes to your JSX by writing `cl`, and save the `assName`.
 Install the plugin:
 
 ```
-# For Babel 6
 npm install --save-dev babel-plugin-react-cl
 ```
 

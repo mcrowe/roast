@@ -1,4 +1,3 @@
 {
-  "plugins": ["../../../lib"],
-  "presets": ["react"]
+  "plugins": ["../../../lib"]
 }

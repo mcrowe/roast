@@ -1,13 +1,14 @@
 {
   "name": "babel-plugin-react-cl",
   "description": "Babel plugin which gives you a shorthand for defining classNames in JSX",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "lib/index.js",
   "scripts": {
     "test": "mocha"
   },
   "devDependencies": {
-    "babel": "^5.8.23",
+    "babel-core": "^6.0.15",
+    "babel-preset-react": "^6.0.15",
     "mocha": "^2.3.3"
   },
   "license": "MIT",

@@ -2,6 +2,12 @@
 
 Add classes to your JSX by writing `cl`, and save the `assName`.
 
+## Example
+
+```html
+<a id='toggle-btn' cl='btn'>A nice button</a>
+```
+
 ## Installation & Usage
 
 Install the plugin:

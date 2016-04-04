@@ -232,6 +232,7 @@ class Repo {
 
       switch(change.type) {
         case 'insert':
+          console.log('applying insert', change)
           if (this.db[table]) {
             this.db[table] = this.db[table].concat(change.record)
           } else {

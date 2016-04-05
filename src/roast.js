@@ -122,21 +122,11 @@ class Repo {
       throw new Error(`Record invalid ${JSON.stringify(errors)}`)
     }
 
-    // if (this.db[table]) {
-    //   this.db[table] = this.db[table].concat(record)
-    // } else {
-    //   this.db[table] = [record]
-    // }
-
-    const tx = this._createTransaction([{
+    this.transaction([{
       action: 'insert',
       table: table,
       record: record
     }])
-    this.applyTransaction(tx)
-    this._notifyTransaction(tx)
-
-    // this._handleTransaction([{action: 'insert', table: table, record: record}])
 
     return _.clone(record)
   }
@@ -145,20 +135,16 @@ class Repo {
     this._requireTable(table)
 
     // Ensure that the record exists
-    const record = this.get(table, id)
+    const previous = this.get(table, id)
 
-    // this.db[table] = _.reject(this.db[table], {id: id})
-
-    const tx = this._createTransaction([{
+    this.transaction([{
       action: 'delete',
       table: table,
       id: id,
-      record: record
+      previous: previous
     }])
-    this.applyTransaction(tx)
-    this._notifyTransaction(tx)
 
-    return record
+    return previous
   }
 
   update(table, id, values) {
@@ -176,21 +162,13 @@ class Repo {
       throw new Error(`Record invalid ${JSON.stringify(errors)}`)
     }
 
-    // this.db[table] = _.map(this.db[table], row =>
-    //   row.id == id ? record : row
-    // )
-
-    const tx = this._createTransaction([{
+    this.transaction([{
       action: 'update',
       table: table,
       id: id,
       previous: previous,
       record: record
     }])
-    this.applyTransaction(tx)
-    this._notifyTransaction(tx)
-
-    // this._handleTransaction([{action: 'update', table: table, id: id, previous: previous, record: record}])
 
     return record
   }
@@ -226,28 +204,66 @@ class Repo {
     return records[0]
   }
 
+  transaction(changes) {
+    const tx = this._createTransaction(changes)
+    this.applyTransaction(tx)
+    this._notifyTransaction(tx)
+  }
+
   applyTransaction(transaction) {
-    _.each(transaction.changes, change => {
-      const table = change.table
+    _.each(transaction.changes, this._applyChange.bind(this))
+  }
 
-      switch(change.type) {
-        case 'insert':
-          console.log('applying insert', change)
-          if (this.db[table]) {
-            this.db[table] = this.db[table].concat(change.record)
-          } else {
-            this.db[table] = [change.record]
-          }
+  revertTransaction(transaction) {
+    _.each(transaction.changes, this._revertChange.bind(this))
+  }
 
-        case 'update':
-          this.db[table] = _.map(this.db[table], row =>
-            row.id == change.id ? change.record : row
-          )
+  _applyChange(change) {
+    const table = change.table
 
-        case 'delete':
-          this.db[table] = _.reject(this.db[table], {id: change.id})
-      }
-    })
+    switch(change.action) {
+      case 'insert':
+        if (this.db[table]) {
+          this.db[table] = this.db[table].concat(change.record)
+        } else {
+          this.db[table] = [change.record]
+        }
+        return
+
+      case 'update':
+        this.db[table] = _.map(this.db[table], row =>
+          row.id == change.id ? change.record : row
+        )
+        return
+
+      case 'delete':
+        this.db[table] = _.reject(this.db[table], {id: change.id})
+        return
+    }
+  }
+
+  _revertChange(change) {
+    const table = change.table
+
+    switch(change.action) {
+      case 'insert':
+        this.db[table] = _.reject(this.db[table], {id: change.record.id})
+        return
+
+      case 'update':
+        this.db[table] = _.map(this.db[table], row =>
+          row.id == change.id ? change.previous : row
+        )
+        return
+
+      case 'delete':
+        if (this.db[table]) {
+          this.db[table] = this.db[table].concat(change.previous)
+        } else {
+          this.db[table] = [change.previous]
+        }
+        return
+    }
   }
 
   _createTransaction(changes) {

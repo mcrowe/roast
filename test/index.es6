@@ -119,6 +119,12 @@ describe('Roast', () => {
       Repo.delete('users', userC.id)
     }, /Record not found/)
 
+    let one = {a: 1, b: 2}
+    let two = {...one}
+    two.a = 5
+    assert.equal(1, one.a)
+
+
   })
 
 })

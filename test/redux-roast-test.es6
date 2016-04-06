@@ -17,7 +17,7 @@ describe('ReduxRoast', () => {
 
   it('reduces transaction actions', () => {
     let db0 = {}
-    let [db1, user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
+    let [db1, _user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
     const tx = Roast.transaction(db0, db1)
 
     assert.deepEqual(db1, ReduxRoast.reducer({}, { type: 'ROAST.TX', tx: tx }))
@@ -25,7 +25,7 @@ describe('ReduxRoast', () => {
 
   it('creates transaction actions', () => {
     let db0 = {}
-    let [db1, user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
+    let [db1, _user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
 
     const tx = [{action: 'insert', table: 'users', record: {id: 1, age: 0, firstName: 'Mitch'}}]
     assert.deepEqual( {type: 'ROAST.TX', tx: tx}, ReduxRoast.transaction(db0, db1) )
@@ -33,7 +33,7 @@ describe('ReduxRoast', () => {
 
   it('creates synchronizing transaction actions', (done) => {
     let db0 = {}
-    let [db1, user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
+    let [db1, _user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
 
     let dispatches = []
 

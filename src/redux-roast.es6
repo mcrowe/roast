@@ -1,12 +1,9 @@
 'use strict'
-
 const Roast = require('./roast')
-
 const TRANSACTION_ACTION = 'ROAST.TX'
 
-const ReduxRoast = {}
 
-ReduxRoast.reducer = (state = {}, action) => {
+const reducer = (state = {}, action) => {
   switch (action.type) {
     case TRANSACTION_ACTION:
       return Roast.executeTransaction(state, action.tx)
@@ -16,7 +13,7 @@ ReduxRoast.reducer = (state = {}, action) => {
 }
 
 
-ReduxRoast.transaction = (fromDb, toDb) => {
+const transaction = (fromDb, toDb) => {
   return {
     type: TRANSACTION_ACTION,
     tx: Roast.transaction(fromDb, toDb)
@@ -24,17 +21,17 @@ ReduxRoast.transaction = (fromDb, toDb) => {
 }
 
 
-ReduxRoast.syncTransaction = sync => (fromDb, toDb) => dispatch => {
-  const action = ReduxRoast.transaction(fromDb, toDb)
+const syncTransaction = sync => (fromDb, toDb) => dispatch => {
+  const action = transaction(fromDb, toDb)
 
   // Try to synchronize.
   // If it fails, revert the transaction.
   sync(action).catch(() =>
-    dispatch(ReduxRoast.transaction(toDb, fromDb))
+    dispatch(transaction(toDb, fromDb))
   )
 
   return action
 }
 
 
-module.exports = ReduxRoast
+module.exports = {reducer, transaction, syncTransaction}

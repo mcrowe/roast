@@ -49,7 +49,7 @@ describe('ReduxRoast', function () {
     var _Repo$insert2 = _slicedToArray(_Repo$insert, 2);
 
     var db1 = _Repo$insert2[0];
-    var user1 = _Repo$insert2[1];
+    var _user1 = _Repo$insert2[1];
 
     var tx = Roast.transaction(db0, db1);
 
@@ -64,7 +64,7 @@ describe('ReduxRoast', function () {
     var _Repo$insert4 = _slicedToArray(_Repo$insert3, 2);
 
     var db1 = _Repo$insert4[0];
-    var user1 = _Repo$insert4[1];
+    var _user1 = _Repo$insert4[1];
 
     var tx = [{ action: 'insert', table: 'users', record: { id: 1, age: 0, firstName: 'Mitch' } }];
     assert.deepEqual({ type: 'ROAST.TX', tx: tx }, ReduxRoast.transaction(db0, db1));
@@ -78,7 +78,7 @@ describe('ReduxRoast', function () {
     var _Repo$insert6 = _slicedToArray(_Repo$insert5, 2);
 
     var db1 = _Repo$insert6[0];
-    var user1 = _Repo$insert6[1];
+    var _user1 = _Repo$insert6[1];
 
     var dispatches = [];
 

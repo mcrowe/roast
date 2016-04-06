@@ -1,53 +1,10 @@
 # Roast
 
-ReactRoast
+Immutable, transactional, database in pure Javascript.
+Redux compatibile, using ReduxRoast.
 
-const Repo = Roast.createStore({
-  ...
-})
-
-// Synchronize transactions with the server
-// If it can't be synchronized, revert it.
-// TODO: We may want to show a message to the user when there is an error.
-Repo.addTransactionListener(tx => {
-  synchronizeTransaction(tx).catch(error =>
-    Repo.revertTransaction(tx)
-  )
-})
-
-ReactDom.render(
-  <Provider repo={Repo}>
-    <App />
-  </Provider>
-, document.getElementById('app'))
-
-
-const App = {...}
-
-function mapRepoToProps(repo, ownProps) {
-  return {
-    ...
-  }
-}
-
-connect(mapRepoToProps)(App)
-
-// Or... maybe we just make Repo globally accessible, as it is in Elixir. Not really a big deal to
-// have global access to the database.
-
-
-
-
-
-
-TODO:
-
-Add babel in
-Rewrite to not use immutable js
-Don't rely on any external libraries
-Use rambda?
-
-
-
-
-
+## TODO
+- Remove dependency on lodash
+- Release as a proper npm module
+- Extract Transaction and Repo functionality into separate files
+- Extract ReduxRoast into its own module?

@@ -4,7 +4,8 @@ Immutable, transactional, database in pure Javascript.
 Redux compatibile, using ReduxRoast.
 
 ## TODO
+- Extract repo methods into top-level functions (e.g. get(schema, db, table, id))
+- Extract Transaction and Repo functionality into separate files
 - Remove dependency on lodash
 - Release as a proper npm module
-- Extract Transaction and Repo functionality into separate files
 - Extract ReduxRoast into its own module?

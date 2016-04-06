@@ -81,29 +81,9 @@ var Repo = function () {
 
     this.schema = schema;
     this.db = {};
-    this.transactionListeners = {};
   }
 
   _createClass(Repo, [{
-    key: 'addTransactionListener',
-    value: function addTransactionListener(listener) {
-      if (!_.isFunction(listener)) {
-        throw new Error('You must provide a function to listen for transactions');
-      }
-
-      var id = uuid.v4();
-      this.transactionListeners[id] = listener;
-      return id;
-    }
-  }, {
-    key: 'removeTransactionListener',
-    value: function removeTransactionListener(id) {
-      if (!_.isString(id)) {
-        throw new Error('You must provide the id of the listener to remove it');
-      }
-      delete this.transactionListeners[id];
-    }
-  }, {
     key: 'get',
     value: function get(table, id) {
       this._requireTable(table);
@@ -128,11 +108,11 @@ var Repo = function () {
         throw new Error('Record invalid ' + JSON.stringify(errors));
       }
 
-      this.transaction([{
-        action: 'insert',
-        table: table,
-        record: record
-      }]);
+      if (this.db[table]) {
+        this.db[table] = this.db[table].concat(record);
+      } else {
+        this.db[table] = [record];
+      }
 
       return _.clone(record);
     }
@@ -144,12 +124,7 @@ var Repo = function () {
       // Ensure that the record exists
       var previous = this.get(table, id);
 
-      this.transaction([{
-        action: 'delete',
-        table: table,
-        id: id,
-        previous: previous
-      }]);
+      this.db[table] = _.reject(this.db[table], { id: id });
 
       return previous;
     }
@@ -170,13 +145,9 @@ var Repo = function () {
         throw new Error('Record invalid ' + JSON.stringify(errors));
       }
 
-      this.transaction([{
-        action: 'update',
-        table: table,
-        id: id,
-        previous: previous,
-        record: record
-      }]);
+      this.db[table] = _.map(this.db[table], function (row) {
+        return row.id == id ? record : row;
+      });
 
       return record;
     }
@@ -214,23 +185,6 @@ var Repo = function () {
       return records[0];
     }
   }, {
-    key: 'transaction',
-    value: function transaction(changes) {
-      var tx = this._createTransaction(changes);
-      this.applyTransaction(tx);
-      this._notifyTransaction(tx);
-    }
-  }, {
-    key: 'applyTransaction',
-    value: function applyTransaction(transaction) {
-      _.each(transaction.changes, this._applyChange.bind(this));
-    }
-  }, {
-    key: 'revertTransaction',
-    value: function revertTransaction(transaction) {
-      _.each(transaction.changes, this._revertChange.bind(this));
-    }
-  }, {
     key: '_applyChange',
     value: function _applyChange(change) {
       var table = change.table;
@@ -254,46 +208,6 @@ var Repo = function () {
           this.db[table] = _.reject(this.db[table], { id: change.id });
           return;
       }
-    }
-  }, {
-    key: '_revertChange',
-    value: function _revertChange(change) {
-      var table = change.table;
-
-      switch (change.action) {
-        case 'insert':
-          this.db[table] = _.reject(this.db[table], { id: change.record.id });
-          return;
-
-        case 'update':
-          this.db[table] = _.map(this.db[table], function (row) {
-            return row.id == change.id ? change.previous : row;
-          });
-          return;
-
-        case 'delete':
-          if (this.db[table]) {
-            this.db[table] = this.db[table].concat(change.previous);
-          } else {
-            this.db[table] = [change.previous];
-          }
-          return;
-      }
-    }
-  }, {
-    key: '_createTransaction',
-    value: function _createTransaction(changes) {
-      return {
-        id: uuid.v4(),
-        changes: changes
-      };
-    }
-  }, {
-    key: '_notifyTransaction',
-    value: function _notifyTransaction(transaction) {
-      _.each(this.transactionListeners, function (listener, _id) {
-        return listener(transaction);
-      });
     }
   }, {
     key: '_requireTable',

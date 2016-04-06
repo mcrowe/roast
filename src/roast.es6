@@ -76,24 +76,6 @@ class Repo {
   constructor(schema) {
     this.schema = schema
     this.db = {}
-    this.transactionListeners = {}
-  }
-
-  addTransactionListener(listener) {
-    if (!_.isFunction(listener)) {
-      throw new Error('You must provide a function to listen for transactions')
-    }
-
-    const id = uuid.v4()
-    this.transactionListeners[id] = listener
-    return id
-  }
-
-  removeTransactionListener(id) {
-    if (!_.isString(id)) {
-      throw new Error('You must provide the id of the listener to remove it')
-    }
-    delete this.transactionListeners[id]
   }
 
   get(table, id) {
@@ -119,11 +101,12 @@ class Repo {
       throw new Error(`Record invalid ${JSON.stringify(errors)}`)
     }
 
-    this.transaction([{
-      action: 'insert',
-      table: table,
-      record: record
-    }])
+    if (this.db[table]) {
+      this.db[table] = this.db[table].concat(record)
+    } else {
+      this.db[table] = [record]
+    }
+
 
     return _.clone(record)
   }
@@ -134,12 +117,7 @@ class Repo {
     // Ensure that the record exists
     const previous = this.get(table, id)
 
-    this.transaction([{
-      action: 'delete',
-      table: table,
-      id: id,
-      previous: previous
-    }])
+    this.db[table] = _.reject(this.db[table], {id: id})
 
     return previous
   }
@@ -159,13 +137,9 @@ class Repo {
       throw new Error(`Record invalid ${JSON.stringify(errors)}`)
     }
 
-    this.transaction([{
-      action: 'update',
-      table: table,
-      id: id,
-      previous: previous,
-      record: record
-    }])
+    this.db[table] = _.map(this.db[table], row =>
+      row.id == id ? record : row
+    )
 
     return record
   }
@@ -199,81 +173,6 @@ class Repo {
     }
 
     return records[0]
-  }
-
-  transaction(changes) {
-    const tx = this._createTransaction(changes)
-    this.applyTransaction(tx)
-    this._notifyTransaction(tx)
-  }
-
-  applyTransaction(transaction) {
-    _.each(transaction.changes, this._applyChange.bind(this))
-  }
-
-  revertTransaction(transaction) {
-    _.each(transaction.changes, this._revertChange.bind(this))
-  }
-
-  _applyChange(change) {
-    const table = change.table
-
-    switch(change.action) {
-      case 'insert':
-        if (this.db[table]) {
-          this.db[table] = this.db[table].concat(change.record)
-        } else {
-          this.db[table] = [change.record]
-        }
-        return
-
-      case 'update':
-        this.db[table] = _.map(this.db[table], row =>
-          row.id == change.id ? change.record : row
-        )
-        return
-
-      case 'delete':
-        this.db[table] = _.reject(this.db[table], {id: change.id})
-        return
-    }
-  }
-
-  _revertChange(change) {
-    const table = change.table
-
-    switch(change.action) {
-      case 'insert':
-        this.db[table] = _.reject(this.db[table], {id: change.record.id})
-        return
-
-      case 'update':
-        this.db[table] = _.map(this.db[table], row =>
-          row.id == change.id ? change.previous : row
-        )
-        return
-
-      case 'delete':
-        if (this.db[table]) {
-          this.db[table] = this.db[table].concat(change.previous)
-        } else {
-          this.db[table] = [change.previous]
-        }
-        return
-    }
-  }
-
-  _createTransaction(changes) {
-    return {
-      id: uuid.v4(),
-      changes: changes
-    }
-  }
-
-  _notifyTransaction(transaction) {
-    _.each(this.transactionListeners, (listener, _id) =>
-      listener(transaction)
-    )
   }
 
   _requireTable(table) {

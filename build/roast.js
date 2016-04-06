@@ -1,10 +1,6 @@
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -24,6 +20,79 @@ Roast.autoIncrement = function (table) {
 
 Roast.uuid = function (_table) {
   return uuid.v4();
+};
+
+function setRow(db, table, id, record) {
+  return _extends({}, db, _defineProperty({}, table, _.map(db[table], function (r) {
+    return r.id == id ? record : r;
+  })));
+}
+
+function insertRow(db, table, record) {
+  return _extends({}, db, _defineProperty({}, table, db[table] ? db[table].concat(record) : [record]));
+}
+
+function deleteRow(db, table, id) {
+  return _extends({}, db, _defineProperty({}, table, _.reject(db[table], { id: id })));
+}
+
+function tableChanges(fromTable, toTable, tableName) {
+  var changes = [];
+
+  var ids = _.uniq(_.map(fromTable, function (r) {
+    return r.id;
+  }).concat(_.map(toTable, function (r) {
+    return r.id;
+  })));
+
+  _.each(ids, function (id) {
+
+    var fromRow = _.find(fromTable, { id: id });
+    var toRow = _.find(toTable, { id: id });
+
+    if (toRow && !fromRow) {
+      // Any rows in toDb not in fromDb should be inserted.
+      changes.push({ action: 'insert', table: tableName, record: toRow });
+    } else if (fromRow && !toRow) {
+      // Any rows in fromDb not in toDb should be deleted.
+      changes.push({ action: 'delete', table: tableName, id: fromRow.id });
+    } else {
+      // Any rows with the same 'id' but different values should be set.
+      if (!_.isEqual(fromRow, toRow)) {
+        changes.push({ action: 'set', table: tableName, id: toRow.id, record: toRow });
+      }
+    }
+  });
+
+  return changes;
+}
+
+Roast.transaction = function (fromDb, toDb) {
+  var id = uuid.v4();
+
+  var tables = _.uniq(Object.keys(fromDb).concat(Object.keys(toDb)));
+
+  var changes = _.flatMap(tables, function (table) {
+    return tableChanges(fromDb[table], toDb[table], table);
+  });
+
+  return {
+    id: id,
+    changes: changes
+  };
+};
+
+Roast.executeTransaction = function (db, tx) {
+  return _.reduce(tx.changes, function (db, change) {
+    switch (change.action) {
+      case 'insert':
+        return insertRow(db, change.table, change.record);
+      case 'delete':
+        return deleteRow(db, change.table, change.id);
+      case 'set':
+        return setRow(db, change.table, change.id, change.record);
+    }
+  }, db);
 };
 
 function columnErrors(columnSchema, value) {
@@ -75,106 +144,46 @@ function applyDefaults(tableSchema, table, record) {
   return result;
 }
 
-var Repo = function () {
-  function Repo(schema) {
-    _classCallCheck(this, Repo);
+Roast.createRepo = function (schema) {
 
-    this.schema = schema;
-    this.db = {};
+  function requireTable(table) {
+    if (!schema[table]) {
+      throw new Error('Table doesn\'t exist \'' + table + '\'');
+    }
   }
 
-  _createClass(Repo, [{
-    key: 'get',
-    value: function get(table, id) {
-      this._requireTable(table);
+  return {
+    get: function get(db, table, id) {
+      requireTable(table);
 
-      var record = this.db[table] && _.find(this.db[table], { id: id });
+      var record = db[table] && _.find(db[table], { id: id });
 
       if (!record) {
         throw new Error('Record not found \'' + table + ':' + id + '\'');
       }
 
       return _extends({}, record);
-    }
-  }, {
-    key: 'insert',
-    value: function insert(table, record) {
-      this._requireTable(table);
+    },
+    all: function all(db, table, where) {
+      requireTable(table);
 
-      record = applyDefaults(this.schema[table], this.db[table], record);
-
-      var errors = tableErrors(this.schema[table], record);
-      if (!_.isEmpty(errors)) {
-        throw new Error('Record invalid ' + JSON.stringify(errors));
-      }
-
-      if (this.db[table]) {
-        this.db[table] = this.db[table].concat(record);
-      } else {
-        this.db[table] = [record];
-      }
-
-      return _.clone(record);
-    }
-  }, {
-    key: 'delete',
-    value: function _delete(table, id) {
-      this._requireTable(table);
-
-      // Ensure that the record exists
-      var previous = this.get(table, id);
-
-      this.db[table] = _.reject(this.db[table], { id: id });
-
-      return previous;
-    }
-  }, {
-    key: 'update',
-    value: function update(table, id, values) {
-      this._requireTable(table);
-
-      var record = this.get(table, id);
-
-      var previous = record;
-
-      record = _extends({}, record, values);
-      record = applyDefaults(this.schema[table], this.db[table], record);
-
-      var errors = tableErrors(this.schema[table], record);
-      if (!_.isEmpty(errors)) {
-        throw new Error('Record invalid ' + JSON.stringify(errors));
-      }
-
-      this.db[table] = _.map(this.db[table], function (row) {
-        return row.id == id ? record : row;
-      });
-
-      return record;
-    }
-  }, {
-    key: 'all',
-    value: function all(table, where) {
-      this._requireTable(table);
-
-      if (!this.db[table]) {
+      if (!db[table]) {
         return [];
       }
 
       // Handle when 'where is not provided'
       if (_.isUndefined(where)) {
-        return this.db[table];
+        return db[table];
       }
 
       if (!_.isFunction(where)) {
         throw new Error("The second parameter must be a function to filter on, or undefined");
       }
 
-      return _.filter(this.db[table], where);
-    }
-  }, {
-    key: 'one',
-    value: function one(table, where) {
-      var records = this.all(table, where);
+      return _.filter(db[table], where);
+    },
+    one: function one(db, table, where) {
+      var records = this.all(db, table, where);
 
       if (records.length == 0) {
         throw new Error('Expected one, but found no records in \'' + table + ' matched the query.');
@@ -183,21 +192,51 @@ var Repo = function () {
       }
 
       return records[0];
-    }
-  }, {
-    key: '_requireTable',
-    value: function _requireTable(table) {
-      if (!this.schema[table]) {
-        throw new Error('Table doesn\'t exist \'' + table + '\'');
+    },
+    insert: function insert(db, table, record) {
+      requireTable(table);
+
+      record = applyDefaults(schema[table], db[table], record);
+
+      var errors = tableErrors(schema[table], record);
+      if (!_.isEmpty(errors)) {
+        throw new Error('Record invalid ' + JSON.stringify(errors));
       }
+
+      db = insertRow(db, table, record);
+
+      return [db, record];
+    },
+    delete: function _delete(db, table, id) {
+      requireTable(table);
+
+      // Ensure that the record exists
+      var previous = this.get(db, table, id);
+
+      db = deleteRow(db, table, id);
+
+      return [db, previous];
+    },
+    update: function update(db, table, id, values) {
+      requireTable(table);
+
+      var record = this.get(db, table, id);
+
+      var previous = record;
+
+      record = _extends({}, record, values);
+      record = applyDefaults(schema[table], db[table], record);
+
+      var errors = tableErrors(schema[table], record);
+      if (!_.isEmpty(errors)) {
+        throw new Error('Record invalid ' + JSON.stringify(errors));
+      }
+
+      db = setRow(db, table, id, record);
+
+      return [db, record];
     }
-  }]);
-
-  return Repo;
-}();
-
-Roast.createRepo = function (schema) {
-  return new Repo(schema);
+  };
 };
 
 module.exports = Roast;

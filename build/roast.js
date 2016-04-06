@@ -94,7 +94,7 @@ var Repo = function () {
         throw new Error('Record not found \'' + table + ':' + id + '\'');
       }
 
-      return _.clone(record);
+      return _extends({}, record);
     }
   }, {
     key: 'insert',
@@ -137,7 +137,7 @@ var Repo = function () {
 
       var previous = record;
 
-      record = _.merge({}, record, values);
+      record = _extends({}, record, values);
       record = applyDefaults(this.schema[table], this.db[table], record);
 
       var errors = tableErrors(this.schema[table], record);
@@ -183,31 +183,6 @@ var Repo = function () {
       }
 
       return records[0];
-    }
-  }, {
-    key: '_applyChange',
-    value: function _applyChange(change) {
-      var table = change.table;
-
-      switch (change.action) {
-        case 'insert':
-          if (this.db[table]) {
-            this.db[table] = this.db[table].concat(change.record);
-          } else {
-            this.db[table] = [change.record];
-          }
-          return;
-
-        case 'update':
-          this.db[table] = _.map(this.db[table], function (row) {
-            return row.id == change.id ? change.record : row;
-          });
-          return;
-
-        case 'delete':
-          this.db[table] = _.reject(this.db[table], { id: change.id });
-          return;
-      }
     }
   }, {
     key: '_requireTable',

@@ -87,7 +87,7 @@ class Repo {
       throw new Error(`Record not found '${table}:${id}'`)
     }
 
-    return _.clone(record)
+    return {...record}
   }
 
 
@@ -129,7 +129,7 @@ class Repo {
 
     const previous = record
 
-    record = _.merge({}, record, values)
+    record = {...record, ...values}
     record = applyDefaults(this.schema[table], this.db[table], record)
 
     const errors = tableErrors(this.schema[table], record)

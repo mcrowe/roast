@@ -2,23 +2,24 @@ const assert = require('assert'),
       Roast = require('../build/roast')
 
 
+const Repo = Roast.createRepo({
+  users: {
+    id: {type: Roast.integer, null: false, default: Roast.autoIncrement},
+    firstName: {type: Roast.string, null: false},
+    lastName: {type: Roast.string},
+    age: {type: Roast.integer, default: 0}
+  },
+  comments: {
+    id: {type: Roast.string, null: false, default: Roast.uuid},
+    body: {type: Roast.string, null: false},
+    user_id: {type: Roast.integer, null: false}
+  }
+})
+
+
 describe('Roast', () => {
 
-  it('works', () => {
-    const Repo = Roast.createRepo({
-      users: {
-        id: {type: Roast.integer, null: false, default: Roast.autoIncrement},
-        firstName: {type: Roast.string, null: false},
-        lastName: {type: Roast.string},
-        age: {type: Roast.integer, default: 0}
-      },
-      comments: {
-        id: {type: Roast.string, null: false, default: Roast.uuid},
-        body: {type: Roast.string, null: false},
-        user_id: {type: Roast.integer, null: false}
-      }
-    })
-
+  it('can do CRUD, create transactions, and execute transactions', () => {
     let db0 = {}
 
     // INSERT
@@ -117,10 +118,10 @@ describe('Roast', () => {
 
     // TRANSACTION
 
-    assert.deepEqual( [{action: 'insert', record: user2, table: 'users'}], Roast.transaction(db1, db2).changes )
-    assert.deepEqual( [{action: 'delete', id: 2, table: 'users'}], Roast.transaction(db2, db3).changes )
-    assert.deepEqual( [{action: 'set', id: 1, record: user4, table: 'users'}], Roast.transaction(db2, db4).changes )
-    assert.deepEqual( [{action: 'set', id: 1, record: user4, table: 'users'}, {action: 'insert', record: comment1, table: 'comments'}], Roast.transaction(db2, db5).changes )
+    assert.deepEqual( [{action: 'insert', record: user2, table: 'users'}], Roast.transaction(db1, db2) )
+    assert.deepEqual( [{action: 'delete', id: 2, table: 'users'}], Roast.transaction(db2, db3) )
+    assert.deepEqual( [{action: 'set', id: 1, record: user4, table: 'users'}], Roast.transaction(db2, db4) )
+    assert.deepEqual( [{action: 'set', id: 1, record: user4, table: 'users'}, {action: 'insert', record: comment1, table: 'comments'}], Roast.transaction(db2, db5) )
 
 
     // EXECUTING TRANSACTIONS

@@ -3,64 +3,60 @@ const assert = require('assert'),
       ReduxRoast = require('../build/redux-roast')
 
 
-describe('ReduxRoast.Reducer', () => {
-
-  it('works', () => {
-
-    const Repo = Roast.createRepo({
-      users: {
-        id: {type: Roast.integer, null: false, default: Roast.autoIncrement},
-        firstName: {type: Roast.string, null: false},
-        lastName: {type: Roast.string},
-        age: {type: Roast.integer, default: 0}
-      }
-    })
-
-    const reducer = ReduxRoast.Reducer(Repo)
-
-    assert.deepEqual({}, reducer({}, { type: 'other' }));
-
-    assert.deepEqual({ a: 1 }, reducer({}, { type: 'ROAST.SET', db: { a: 1 } }));
-
-
-  })
+const Repo = Roast.createRepo({
+  users: {
+    id: {type: Roast.integer, null: false, default: Roast.autoIncrement},
+    firstName: {type: Roast.string, null: false},
+    lastName: {type: Roast.string},
+    age: {type: Roast.integer, default: 0}
+  }
 })
 
-describe('ReduxRoast.ActionCreators', () => {
 
-  it('works', () => {
+describe('ReduxRoast', () => {
 
-    const Repo = Roast.createRepo({
-      users: {
-        id: {type: Roast.integer, null: false, default: Roast.autoIncrement},
-        firstName: {type: Roast.string, null: false},
-        lastName: {type: Roast.string},
-        age: {type: Roast.integer, default: 0}
-      }
-    })
+  it('reduces transaction actions', () => {
+    let db0 = {}
+    let [db1, user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
+    const tx = Roast.transaction(db0, db1)
 
-    let actions = ReduxRoast.ActionCreators(Repo)
-
-    let dispatchedActions = []
-
-    function dispatch(action) { dispatchedActions.push(action) }
-    function getState() { return {roast: {}} }
-
-    const [db1, user1] = actions.insert('users', {firstName: 'John'})(dispatch, getState)
-
-    assert.deepEqual( {id: 1, firstName: 'John', age: 0}, user1 )
-    assert.deepEqual( {users: [user1]}, db1 )
-
-    assert.equal( 1, dispatchedActions.length )
-    assert.equal( 'ROAST.INSERT', dispatchedActions[0].type )
-
-    // Failing sync
-    // function failingSync(action) { return Promise.reject() }
-    // actions = ReduxRoast.ActionCreators(Repo, () => Promise.reject())
-
-    // const [db1, user1] = actions.insert('users', {firstName: 'John'})(dispatch, getState)
-
-
-
+    assert.deepEqual(db1, ReduxRoast.reducer({}, { type: 'ROAST.TX', tx: tx }))
   })
+
+  it('creates transaction actions', () => {
+    let db0 = {}
+    let [db1, user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
+
+    const tx = [{action: 'insert', table: 'users', record: {id: 1, age: 0, firstName: 'Mitch'}}]
+    assert.deepEqual( {type: 'ROAST.TX', tx: tx}, ReduxRoast.transaction(db0, db1) )
+  })
+
+  it('creates synchronizing transaction actions', (done) => {
+    let db0 = {}
+    let [db1, user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
+
+    let dispatches = []
+
+    function successSync(action) { return Promise.resolve() }
+    function failureSync(action) { return Promise.reject() }
+
+    function dispatch(action) {
+      dispatches.push(action)
+    }
+
+    let tx = [{action: 'insert', table: 'users', record: {id: 1, age: 0, firstName: 'Mitch'}}]
+
+    let action = ReduxRoast.syncTransaction(successSync)(db0, db1)(dispatch)
+    assert.deepEqual( {type: 'ROAST.TX', tx: tx}, action )
+    assert.equal(0, dispatches.length)
+
+    action = ReduxRoast.syncTransaction(failureSync)(db0, db1)(dispatch)
+    assert.deepEqual( {type: 'ROAST.TX', tx: tx}, action )
+
+    setTimeout(() => {
+      assert.equal(1, dispatches.length)
+      done()
+    }, 0)
+  })
+
 })

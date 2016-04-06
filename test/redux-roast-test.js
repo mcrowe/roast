@@ -30,68 +30,81 @@ var assert = require('assert'),
     Roast = require('../build/roast'),
     ReduxRoast = require('../build/redux-roast');
 
-describe('ReduxRoast.Reducer', function () {
-
-  it('works', function () {
-
-    var Repo = Roast.createRepo({
-      users: {
-        id: { type: Roast.integer, null: false, default: Roast.autoIncrement },
-        firstName: { type: Roast.string, null: false },
-        lastName: { type: Roast.string },
-        age: { type: Roast.integer, default: 0 }
-      }
-    });
-
-    var reducer = ReduxRoast.Reducer(Repo);
-
-    assert.deepEqual({}, reducer({}, { type: 'other' }));
-
-    assert.deepEqual({ a: 1 }, reducer({}, { type: 'ROAST.SET', db: { a: 1 } }));
-  });
+var Repo = Roast.createRepo({
+  users: {
+    id: { type: Roast.integer, null: false, default: Roast.autoIncrement },
+    firstName: { type: Roast.string, null: false },
+    lastName: { type: Roast.string },
+    age: { type: Roast.integer, default: 0 }
+  }
 });
 
-describe('ReduxRoast.ActionCreators', function () {
+describe('ReduxRoast', function () {
 
-  it('works', function () {
+  it('reduces transaction actions', function () {
+    var db0 = {};
 
-    var Repo = Roast.createRepo({
-      users: {
-        id: { type: Roast.integer, null: false, default: Roast.autoIncrement },
-        firstName: { type: Roast.string, null: false },
-        lastName: { type: Roast.string },
-        age: { type: Roast.integer, default: 0 }
-      }
-    });
+    var _Repo$insert = Repo.insert(db0, 'users', { firstName: 'Mitch' });
 
-    var actions = ReduxRoast.ActionCreators(Repo);
+    var _Repo$insert2 = _slicedToArray(_Repo$insert, 2);
 
-    var dispatchedActions = [];
+    var db1 = _Repo$insert2[0];
+    var user1 = _Repo$insert2[1];
+
+    var tx = Roast.transaction(db0, db1);
+
+    assert.deepEqual(db1, ReduxRoast.reducer({}, { type: 'ROAST.TX', tx: tx }));
+  });
+
+  it('creates transaction actions', function () {
+    var db0 = {};
+
+    var _Repo$insert3 = Repo.insert(db0, 'users', { firstName: 'Mitch' });
+
+    var _Repo$insert4 = _slicedToArray(_Repo$insert3, 2);
+
+    var db1 = _Repo$insert4[0];
+    var user1 = _Repo$insert4[1];
+
+    var tx = [{ action: 'insert', table: 'users', record: { id: 1, age: 0, firstName: 'Mitch' } }];
+    assert.deepEqual({ type: 'ROAST.TX', tx: tx }, ReduxRoast.transaction(db0, db1));
+  });
+
+  it('creates synchronizing transaction actions', function (done) {
+    var db0 = {};
+
+    var _Repo$insert5 = Repo.insert(db0, 'users', { firstName: 'Mitch' });
+
+    var _Repo$insert6 = _slicedToArray(_Repo$insert5, 2);
+
+    var db1 = _Repo$insert6[0];
+    var user1 = _Repo$insert6[1];
+
+    var dispatches = [];
+
+    function successSync(action) {
+      return Promise.resolve();
+    }
+    function failureSync(action) {
+      return Promise.reject();
+    }
 
     function dispatch(action) {
-      dispatchedActions.push(action);
-    }
-    function getState() {
-      return { roast: {} };
+      dispatches.push(action);
     }
 
-    var _actions$insert = actions.insert('users', { firstName: 'John' })(dispatch, getState);
+    var tx = [{ action: 'insert', table: 'users', record: { id: 1, age: 0, firstName: 'Mitch' } }];
 
-    var _actions$insert2 = _slicedToArray(_actions$insert, 2);
+    var action = ReduxRoast.syncTransaction(successSync)(db0, db1)(dispatch);
+    assert.deepEqual({ type: 'ROAST.TX', tx: tx }, action);
+    assert.equal(0, dispatches.length);
 
-    var db1 = _actions$insert2[0];
-    var user1 = _actions$insert2[1];
+    action = ReduxRoast.syncTransaction(failureSync)(db0, db1)(dispatch);
+    assert.deepEqual({ type: 'ROAST.TX', tx: tx }, action);
 
-    assert.deepEqual({ id: 1, firstName: 'John', age: 0 }, user1);
-    assert.deepEqual({ users: [user1] }, db1);
-
-    assert.equal(1, dispatchedActions.length);
-    assert.equal('ROAST.INSERT', dispatchedActions[0].type);
-
-    // Failing sync
-    // function failingSync(action) { return Promise.reject() }
-    // actions = ReduxRoast.ActionCreators(Repo, () => Promise.reject())
-
-    // const [db1, user1] = actions.insert('users', {firstName: 'John'})(dispatch, getState)
+    setTimeout(function () {
+      assert.equal(1, dispatches.length);
+      done();
+    }, 0);
   });
 });

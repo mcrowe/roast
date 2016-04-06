@@ -68,22 +68,15 @@ function tableChanges(fromTable, toTable, tableName) {
 }
 
 Roast.transaction = function (fromDb, toDb) {
-  var id = uuid.v4();
-
   var tables = _.uniq(Object.keys(fromDb).concat(Object.keys(toDb)));
 
-  var changes = _.flatMap(tables, function (table) {
+  return _.flatMap(tables, function (table) {
     return tableChanges(fromDb[table], toDb[table], table);
   });
-
-  return {
-    id: id,
-    changes: changes
-  };
 };
 
 Roast.executeTransaction = function (db, tx) {
-  return _.reduce(tx.changes, function (db, change) {
+  return _.reduce(tx, function (db, change) {
     switch (change.action) {
       case 'insert':
         return insertRow(db, change.table, change.record);

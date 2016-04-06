@@ -34,3 +34,20 @@ connect(mapRepoToProps)(App)
 
 // Or... maybe we just make Repo globally accessible, as it is in Elixir. Not really a big deal to
 // have global access to the database.
+
+
+
+
+
+
+TODO:
+
+Add babel in
+Rewrite to not use immutable js
+Don't rely on any external libraries
+Use rambda?
+
+
+
+
+

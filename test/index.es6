@@ -119,40 +119,6 @@ describe('Roast', () => {
       Repo.delete('users', userC.id)
     }, /Record not found/)
 
-
-    let transactions = []
-
-    // Listening to transactions
-    Repo.addTransactionListener(transaction => {
-      transactions.push(transaction)
-    })
-
-    Repo.insert('users', {firstName: 'Kever'})
-    Repo.delete('users', userB.id)
-    Repo.update('users', userA.id, {firstName: 'Dool'})
-
-    assert.equal(3, transactions.length)
-    assert.deepEqual([{action: 'insert', table: 'users', record: {age: 0, firstName: "Kever", id: 3}}], transactions[0].changes)
-    assert.deepEqual([{action: 'delete', table: 'users', id: userB.id, previous: {age: 0, firstName: "Bob", id: 2}}], transactions[1].changes)
-    assert.deepEqual([{action: 'update', table: 'users', id: userA.id, record: {age: 0, firstName: "Dool", id: 1}, previous: {age: 0, firstName: "Mitch", id: 1}}], transactions[2].changes)
-
-
-    let tx = {
-      id: 1,
-      changes: [{action: 'update', table: 'users', id: userA.id, previous: userA, record: {id: userA.id, firstName: 'Lood', age: 0}}]
-    }
-
-    // Applying transactions
-    Repo.applyTransaction(tx)
-    assert.equal('Lood', Repo.get('users', userA.id).firstName)
-
-    // Reverting transactions
-    Repo.revertTransaction(tx)
-    assert.equal('Mitch', Repo.get('users', userA.id).firstName)
-
-
-
-
   })
 
 })

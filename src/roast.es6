@@ -63,10 +63,7 @@ function applyDefaults(tableSchema, table, record) {
 
     if (_.isNil(record[col]) && !_.isNil(colDefault)) {
       const val = _.isFunction(colDefault) ? colDefault(table) : colDefault
-
-      let update = {}
-      update[col] = val
-      result = _.merge({}, result, update)
+      result = {...result, [col]: val}
     }
   })
 

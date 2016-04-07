@@ -27,7 +27,7 @@ var _slicedToArray = function () {
 }();
 
 var assert = require('assert'),
-    Roast = require('../build/roast');
+    Roast = require('../lib');
 
 var Repo = Roast.createRepo({
   users: {

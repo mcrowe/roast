@@ -1,5 +1,5 @@
 const assert = require('assert'),
-      Roast = require('../build/roast')
+      Roast = require('../lib')
 
 
 const Repo = Roast.createRepo({

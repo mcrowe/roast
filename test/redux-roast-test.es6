@@ -1,6 +1,5 @@
 const assert = require('assert'),
-      Roast = require('../build/roast'),
-      ReduxRoast = require('../build/redux-roast')
+      Roast = require('../lib')
 
 
 const Repo = Roast.createRepo({
@@ -20,7 +19,7 @@ describe('ReduxRoast', () => {
     let [db1, _user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
     const tx = Roast.transaction(db0, db1)
 
-    assert.deepEqual(db1, ReduxRoast.reducer({}, { type: 'ROAST.TX', tx: tx }))
+    assert.deepEqual(db1, Roast.Redux.reducer({}, { type: 'ROAST.TX', tx: tx }))
   })
 
   it('creates transaction actions', () => {
@@ -28,7 +27,7 @@ describe('ReduxRoast', () => {
     let [db1, _user1] = Repo.insert(db0, 'users', {firstName: 'Mitch'})
 
     const tx = [{action: 'insert', table: 'users', record: {id: 1, age: 0, firstName: 'Mitch'}}]
-    assert.deepEqual( {type: 'ROAST.TX', tx: tx}, ReduxRoast.transaction(db0, db1) )
+    assert.deepEqual( {type: 'ROAST.TX', tx: tx}, Roast.Redux.transaction(db0, db1) )
   })
 
   it('creates synchronizing transaction actions', (done) => {
@@ -46,11 +45,11 @@ describe('ReduxRoast', () => {
 
     let tx = [{action: 'insert', table: 'users', record: {id: 1, age: 0, firstName: 'Mitch'}}]
 
-    let action = ReduxRoast.syncTransaction(successSync)(db0, db1)(dispatch)
+    let action = Roast.Redux.syncTransaction(successSync)(db0, db1)(dispatch)
     assert.deepEqual( {type: 'ROAST.TX', tx: tx}, action )
     assert.equal(0, dispatches.length)
 
-    action = ReduxRoast.syncTransaction(failureSync)(db0, db1)(dispatch)
+    action = Roast.Redux.syncTransaction(failureSync)(db0, db1)(dispatch)
     assert.deepEqual( {type: 'ROAST.TX', tx: tx}, action )
 
     setTimeout(() => {

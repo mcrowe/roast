@@ -1,10 +1,11 @@
 {
   "name": "roast",
-  "description": "",
-  "version": "1.0.0",
-  "main": "lib/index.js",
+  "description": "Immutable, transactional, database in pure Javascript.",
+  "version": "0.0.1",
+  "main": "lib/roast.js",
   "scripts": {
-    "test": "./node_modules/.bin/babel src --out-dir build && ./node_modules/.bin/babel test --out-dir test && mocha"
+    "build": "./node_modules/.bin/babel src --out-dir lib",
+    "test": "./node_modules/.bin/babel src --out-dir lib && ./node_modules/.bin/babel test --out-dir test && mocha"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",

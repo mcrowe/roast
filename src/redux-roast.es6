@@ -1,4 +1,5 @@
 'use strict'
+
 const Roast = require('./roast')
 const TRANSACTION_ACTION = 'ROAST.TX'
 

@@ -8,6 +8,8 @@ const Roast = {}
 Roast.string = 'string'
 Roast.integer = 'integer'
 Roast.number = 'number'
+Roast.boolean = 'boolean'
+
 
 Roast.autoIncrement = function(table) {
   const max = _.maxBy(table, 'id')
@@ -111,6 +113,10 @@ function columnErrors(columnSchema, value) {
 
   if (columnSchema.type == Roast.number && !(_.isNumber(value) || _.isNil(value))) {
     errors.push(`must be a number`)
+  }
+
+  if (columnSchema.type == Roast.boolean && !(_.isBoolean(value) || _.isNil(value))) {
+    errors.push(`must be a boolean`)
   }
 
   return errors
@@ -244,6 +250,18 @@ Roast.createRepo = schema => {
       db = setRow(db, table, id, record)
 
       return [db, record]
+    },
+
+    insert_(db, table, record) {
+      return this.insert(db, table, record)[0]
+    },
+
+    delete_(db, table, id) {
+      return this.delete(db, table, id)[0]
+    },
+
+    update_(db, table, id, values) {
+      return this.update(db, table, id, values)[0]
     }
 
   }

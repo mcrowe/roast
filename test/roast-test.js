@@ -181,6 +181,17 @@ describe('Roast', function () {
     // EXECUTING TRANSACTIONS
 
     var tx = Roast.transaction(db2, db5);
+
     assert.deepEqual(db5, Roast.executeTransaction(db2, tx));
+  });
+
+  it('has shorthand methods for updaters', function () {
+    var db = {};
+
+    db = Repo.insert_(db, 'users', { firstName: 'Mitch' });
+    db = Repo.update_(db, 'users', 1, { firstName: 'Bob' });
+    db = Repo.delete_(db, 'users', 1);
+
+    assert.deepEqual({ users: [] }, db);
   });
 });

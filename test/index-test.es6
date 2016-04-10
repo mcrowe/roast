@@ -48,14 +48,14 @@ describe('Roast', () => {
 
     assert.throws(() => {
       Repo.get(db2, 'others', 3)
-    }, /Table doesn't exist/)
+    }, /table does not exist/)
 
 
     // ALL
 
     assert.throws(() => {
       Repo.all(db2, 'others')
-    }, /Table doesn't exist/)
+    }, /table does not exist/)
 
     assert.equal(2, Repo.all(db2, 'users').length)
     assert.equal(2, Repo.all(db2, 'users', u => true).length)
@@ -66,7 +66,7 @@ describe('Roast', () => {
 
     assert.throws(() => {
       Repo.one(db2, 'others')
-    }, /Table doesn't exist/)
+    }, /table does not exist/)
 
     assert.throws(() => {
       Repo.one(db2, 'users')
@@ -92,7 +92,7 @@ describe('Roast', () => {
 
     assert.throws(() => {
       Repo.delete(db2, 'others', 2)
-    }, /Table doesn't exist/)
+    }, /table does not exist/)
 
 
     // UPDATE
@@ -108,7 +108,7 @@ describe('Roast', () => {
 
     assert.throws(() => {
       Repo.update(db2, 'others', 1, {firstName: null})
-    }, /Table doesn't exist/)
+    }, /table does not exist/)
 
 
     // UUID default
@@ -140,6 +140,26 @@ describe('Roast', () => {
     db = Repo.delete_(db, 'users', 1)
 
     assert.deepEqual({users: []}, db)
+  })
+
+  it('validates parameters', () => {
+    let db = {}
+
+    const comment = {body: 'some body', user_id: 1}
+
+    assert.throws(() => {
+      Repo.insert('string', 'comments', comment)
+    }, /Roast Error: "db" must be a plain object/)
+
+    assert.throws(() => {
+      Repo.insert(db, 5, comment)
+    }, /Roast Error: "table" must be a string/)
+
+    assert.throws(() => {
+      Repo.insert(db, 'comments')
+    }, /Roast Error: "values" must be a plain object/)
+
+
   })
 
 })

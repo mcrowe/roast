@@ -84,13 +84,13 @@ describe('Roast', function () {
 
     assert.throws(function () {
       Repo.get(db2, 'others', 3);
-    }, /Table doesn't exist/);
+    }, /table does not exist/);
 
     // ALL
 
     assert.throws(function () {
       Repo.all(db2, 'others');
-    }, /Table doesn't exist/);
+    }, /table does not exist/);
 
     assert.equal(2, Repo.all(db2, 'users').length);
     assert.equal(2, Repo.all(db2, 'users', function (u) {
@@ -104,7 +104,7 @@ describe('Roast', function () {
 
     assert.throws(function () {
       Repo.one(db2, 'others');
-    }, /Table doesn't exist/);
+    }, /table does not exist/);
 
     assert.throws(function () {
       Repo.one(db2, 'users');
@@ -138,7 +138,7 @@ describe('Roast', function () {
 
     assert.throws(function () {
       Repo.delete(db2, 'others', 2);
-    }, /Table doesn't exist/);
+    }, /table does not exist/);
 
     // UPDATE
 
@@ -158,7 +158,7 @@ describe('Roast', function () {
 
     assert.throws(function () {
       Repo.update(db2, 'others', 1, { firstName: null });
-    }, /Table doesn't exist/);
+    }, /table does not exist/);
 
     // UUID default
 
@@ -193,5 +193,23 @@ describe('Roast', function () {
     db = Repo.delete_(db, 'users', 1);
 
     assert.deepEqual({ users: [] }, db);
+  });
+
+  it('validates parameters', function () {
+    var db = {};
+
+    var comment = { body: 'some body', user_id: 1 };
+
+    assert.throws(function () {
+      Repo.insert('string', 'comments', comment);
+    }, /Roast Error: "db" must be a plain object/);
+
+    assert.throws(function () {
+      Repo.insert(db, 5, comment);
+    }, /Roast Error: "table" must be a string/);
+
+    assert.throws(function () {
+      Repo.insert(db, 'comments');
+    }, /Roast Error: "values" must be a plain object/);
   });
 });
